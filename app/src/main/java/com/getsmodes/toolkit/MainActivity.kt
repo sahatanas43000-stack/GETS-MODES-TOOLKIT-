@@ -69,7 +69,13 @@ private val toolItems = listOf(
     ToolItem("Duplicate Line Remover", "Remove repeated lines", "Text"),
     ToolItem("Telegram Post Formatter", "Prepare clean post text", "Telegram"),
     ToolItem("Video Downloader", "Download direct video file links", "Online"),
-    ToolItem("Offline Notes", "Create and save private notes on this device", "Notes"),
+    ToolItem("Offline Notes", "Many private notes with search", "Notes"),
+    ToolItem("QR Code Generator", "Turn text or a link into a QR code", "QR"),
+    ToolItem("QR Code Scanner", "Scan with camera or from an image", "QR"),
+    ToolItem("Image to PDF", "Combine photos into one PDF", "PDF"),
+    ToolItem("Merge PDFs", "Join several PDF files into one", "PDF"),
+    ToolItem("Unit Converter", "Length, weight, volume, area, speed, data, temperature", "Converter"),
+    ToolItem("Currency Converter", "Live exchange rates, saved for offline use", "Online"),
     ToolItem("ZIP Extractor", "Extract ZIP archives to app storage", "Files"),
     ToolItem("Image Compressor", "Compress a photo offline", "Images"),
     ToolItem("Image Resize", "Resize a photo offline", "Images"),
@@ -104,7 +110,7 @@ private fun ToolkitApp() {
                         Column {
                             Text("GETS MODES TOOLKIT", fontWeight = FontWeight.Bold)
                             Text(
-                                if (selected == null) "Offline tools • Online downloader" else selected!!.category,
+                                if (selected == null) "Offline tools • Online downloader & rates" else selected!!.category,
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -191,7 +197,7 @@ private fun HomeScreen(
         }
         item {
             Column {
-                Text("Developed by Anas • Version 2.1.0", style = MaterialTheme.typography.labelMedium, color = Green)
+                Text("Developed by Anas • Version 2.2.0", style = MaterialTheme.typography.labelMedium, color = Green)
                 Text("Privacy: no analytics, accounts, ads or cloud storage.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         }
@@ -202,7 +208,13 @@ private fun HomeScreen(
 private fun ToolScreen(item: ToolItem, modifier: Modifier = Modifier) {
     when (item.title) {
         "Video Downloader" -> VideoDownloaderScreen(modifier)
-        "Offline Notes" -> OfflineNotesScreen(modifier)
+        "Offline Notes" -> NotesScreen(modifier)
+        "QR Code Generator" -> QrGeneratorScreen(modifier)
+        "QR Code Scanner" -> QrScannerScreen(modifier)
+        "Image to PDF" -> ImageToPdfScreen(modifier)
+        "Merge PDFs" -> MergePdfScreen(modifier)
+        "Unit Converter" -> UnitConverterScreen(modifier)
+        "Currency Converter" -> CurrencyConverterScreen(modifier)
         "ZIP Extractor" -> ZipExtractorScreen(modifier)
         "Image Compressor" -> ImageUtilityScreen(modifier, resize = false)
         "Image Resize" -> ImageUtilityScreen(modifier, resize = true)

@@ -48,25 +48,6 @@ private val V2Green = Color(0xFF16834A)
 private val V2Pale = Color(0xFFEAF6EE)
 
 @Composable
-fun OfflineNotesScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("offline_notes_v2", Context.MODE_PRIVATE) }
-    var notes by remember { mutableStateOf(prefs.getString("notes", "") ?: "") }
-    var title by remember { mutableStateOf(prefs.getString("title", "") ?: "") }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Offline Notes", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Note title") }, singleLine = true)
-        OutlinedTextField(notes, { notes = it }, Modifier.fillMaxWidth().weight(1f), label = { Text("Write your note") })
-        Button(onClick = {
-            prefs.edit().putString("title", title).putString("notes", notes).apply()
-            Toast.makeText(context, "Saved on this device", Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier.fillMaxWidth()) { Text("Save Note") }
-        OutlinedButton(onClick = { title = ""; notes = ""; prefs.edit().clear().apply() }, modifier = Modifier.fillMaxWidth()) { Text("Clear Note") }
-        Text("Notes stay in this app's private local storage. No account or cloud sync.", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
 fun ZipExtractorScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var status by remember { mutableStateOf("Choose a ZIP file to extract it into the app's local Files folder.") }
@@ -356,18 +337,18 @@ fun DownloadHistoryScreen(modifier: Modifier = Modifier) {
     }
 }
 
-private fun appDir(context: Context, type: String?): File =
+internal fun appDir(context: Context, type: String?): File =
     (context.getExternalFilesDir(type) ?: File(context.filesDir, type ?: "files")).apply { mkdirs() }
 
-private const val MAX_DECODE_SIDE = 4096
+internal const val MAX_DECODE_SIDE = 4096
 
-private fun decodeBitmap(context: Context, uri: Uri): Bitmap? {
+internal fun decodeBitmap(context: Context, uri: Uri, maxSide: Int = MAX_DECODE_SIDE): Bitmap? {
     return try {
         // Pass 1: read only the size, so huge photos are downsampled instead of causing OutOfMemoryError.
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
-        while (bounds.outWidth / sample > MAX_DECODE_SIDE || bounds.outHeight / sample > MAX_DECODE_SIDE) sample *= 2
+        while (bounds.outWidth / sample > maxSide || bounds.outHeight / sample > maxSide) sample *= 2
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
         val bmp = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
         // Respect the camera's EXIF orientation so photos are not saved sideways.

@@ -19,7 +19,10 @@ Android all-in-one toolkit built with Kotlin and Jetpack Compose.
 - Text counter and case converter
 - Duplicate line remover
 - Telegram post formatter
-- Offline notes
+- Offline notes (multiple notes, search)
+- QR code generator and scanner
+- Image to PDF and PDF merge
+- Unit converter
 - ZIP extractor
 - Image compressor and resize
 - Manual Dress Editor with a movable, resizable, recolorable shirt overlay
@@ -27,8 +30,24 @@ Android all-in-one toolkit built with Kotlin and Jetpack Compose.
 
 ## Online tools
 - Direct video URL download
+- Currency converter (live rates)
 - Social source links (Facebook, Instagram, TikTok) open the original platform/browser; this project does not extract media from those pages.
 - Download history for files downloaded into this app's Movies folder
+
+## What's new in 2.2.0
+- QR code generator and scanner (camera scan uses Google Play services; image scan is fully offline)
+- Image to PDF and PDF merge (share/save through the Android share sheet)
+- Offline Notes now supports many notes with search (old single note is migrated)
+- Unit converter (offline) and currency converter (live rates, cached for offline use)
+- Each push to `main` also publishes the APK under Releases > Latest build
+
+## Download the app
+1. Open the repository on GitHub, go to **Releases** and open **Latest build**.
+2. Tap `GETS-MODES-TOOLKIT.apk` to download it.
+3. Open the file on your phone. If Android asks, allow "Install unknown apps" for your browser.
+4. This is a debug build, so Play Protect may show a warning. Choose "Install anyway" only for your own build.
+
+Alternative: **Actions** > latest run > **Artifacts** > `gets-modes-toolkit-debug-apk` (a ZIP that contains the APK).
 
 ## What's new in 2.1.0
 - Fixed a compile error on the home screen footer.
@@ -59,7 +78,7 @@ Push to the `main` branch. GitHub Actions builds a debug APK. Download it from t
 
 ## Storage and privacy
 - Offline tools do not make network requests.
-- Internet permission is used only by the optional online downloader.
+- Internet permission is used only by the optional video downloader and currency rates.
 - Files created by the app are stored in app-specific storage.
 - No login, analytics, ads, AI service or cloud backend is included.
 - ZIP extraction rejects entries that attempt to write outside the extraction folder.
