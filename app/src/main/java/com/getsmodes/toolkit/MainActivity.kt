@@ -9,23 +9,33 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -50,39 +60,55 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class ToolItem(val title: String, val description: String, val category: String)
+private data class ToolItem(val title: String, val description: String, val category: String, val icon: ImageVector)
+
+private val categoryColors = mapOf(
+    "Developer" to Color(0xFF3B6FE0),
+    "Security" to Color(0xFF7A4FD6),
+    "Text" to Color(0xFFE07B2E),
+    "Telegram" to Color(0xFF229ED9),
+    "Notes" to Color(0xFFD9A400),
+    "QR" to Color(0xFF37474F),
+    "PDF" to Color(0xFFD93B3B),
+    "Converter" to Color(0xFF0E9AA7),
+    "Images" to Color(0xFFD6447A),
+    "Files" to Color(0xFF6B7A8A),
+    "Online" to Color(0xFF16834A)
+)
+
+private fun colorFor(category: String): Color = categoryColors[category] ?: Green
 
 private val toolItems = listOf(
-    ToolItem("JSON Formatter", "Format and validate JSON", "Developer"),
-    ToolItem("Base64 Encoder / Decoder", "Encode or decode text", "Developer"),
-    ToolItem("URL Encoder / Decoder", "Encode or decode URL text", "Developer"),
-    ToolItem("SHA-256 Hash", "Create a SHA-256 digest", "Developer"),
-    ToolItem("UUID Generator", "Generate a random UUID", "Developer"),
-    ToolItem("Regex Tester", "Test a regular expression", "Developer"),
-    ToolItem("Hash Generator", "MD5, SHA-1, SHA-256 and SHA-512 at once", "Developer"),
-    ToolItem("JWT Decoder", "Read a JWT header and payload (no signature check)", "Developer"),
-    ToolItem("Timestamp Converter", "Unix time to date, or leave empty for now", "Developer"),
-    ToolItem("Password Generator", "Secure random password (input = length)", "Security"),
-    ToolItem("Line Sorter", "Sort lines A-Z and trim blanks", "Text"),
-    ToolItem("Text Counter", "Count words, characters and lines", "Text"),
-    ToolItem("Case Converter", "Uppercase, lowercase and title case", "Text"),
-    ToolItem("Duplicate Line Remover", "Remove repeated lines", "Text"),
-    ToolItem("Telegram Post Formatter", "Prepare clean post text", "Telegram"),
-    ToolItem("Video Downloader", "Download direct video file links", "Online"),
-    ToolItem("Offline Notes", "Many private notes with search", "Notes"),
-    ToolItem("QR Code Generator", "Turn text or a link into a QR code", "QR"),
-    ToolItem("QR Code Scanner", "Scan with camera or from an image", "QR"),
-    ToolItem("Image to PDF", "Combine photos into one PDF", "PDF"),
-    ToolItem("Merge PDFs", "Join several PDF files into one", "PDF"),
-    ToolItem("Unit Converter", "Length, weight, volume, area, speed, data, temperature", "Converter"),
-    ToolItem("Currency Converter", "Live exchange rates, saved for offline use", "Online"),
-    ToolItem("ZIP Extractor", "Extract ZIP archives to app storage", "Files"),
-    ToolItem("Image Compressor", "Compress a photo offline", "Images"),
-    ToolItem("Image Resize", "Resize a photo offline", "Images"),
-    ToolItem("Manual Dress Editor", "Place and customize clothing overlays on a photo", "Images"),
-    ToolItem("Batch Rename", "Rename files in the app workspace", "Files"),
-    ToolItem("File Manager", "Browse files created by this app", "Files"),
-    ToolItem("Download History", "View video files downloaded by this app", "Online")
+    ToolItem("JSON Formatter", "Format and validate JSON", "Developer", Icons.Default.Code),
+    ToolItem("Base64 Encoder / Decoder", "Encode or decode text", "Developer", Icons.Default.SwapHoriz),
+    ToolItem("URL Encoder / Decoder", "Encode or decode URL text", "Developer", Icons.Default.Link),
+    ToolItem("SHA-256 Hash", "Create a SHA-256 digest", "Developer", Icons.Default.Fingerprint),
+    ToolItem("UUID Generator", "Generate a random UUID", "Developer", Icons.Default.Shuffle),
+    ToolItem("Regex Tester", "Test a regular expression", "Developer", Icons.Default.Search),
+    ToolItem("Hash Generator", "MD5, SHA-1, SHA-256 and SHA-512 at once", "Developer", Icons.Default.Tag),
+    ToolItem("JWT Decoder", "Read a JWT header and payload (no signature check)", "Developer", Icons.Default.VpnKey),
+    ToolItem("Timestamp Converter", "Unix time to date, or leave empty for now", "Developer", Icons.Default.Schedule),
+    ToolItem("Password Generator", "Secure random password (input = length)", "Security", Icons.Default.Key),
+    ToolItem("Text Counter", "Count words, characters and lines", "Text", Icons.Default.FormatListNumbered),
+    ToolItem("Case Converter", "Uppercase, lowercase and title case", "Text", Icons.Default.TextFields),
+    ToolItem("Duplicate Line Remover", "Remove repeated lines", "Text", Icons.Default.FilterList),
+    ToolItem("Line Sorter", "Sort lines A-Z and trim blanks", "Text", Icons.Default.SortByAlpha),
+    ToolItem("Telegram Post Formatter", "Prepare clean post text", "Telegram", Icons.AutoMirrored.Filled.Send),
+    ToolItem("Offline Notes", "Many private notes with search", "Notes", Icons.Default.StickyNote2),
+    ToolItem("QR Code Generator", "Turn text or a link into a QR code", "QR", Icons.Default.QrCode),
+    ToolItem("QR Code Scanner", "Scan with camera or from an image", "QR", Icons.Default.QrCodeScanner),
+    ToolItem("Image to PDF", "Combine photos into one PDF", "PDF", Icons.Default.PictureAsPdf),
+    ToolItem("Merge PDFs", "Join several PDF files into one", "PDF", Icons.Default.MergeType),
+    ToolItem("Unit Converter", "Length, weight, area, speed, data, temperature", "Converter", Icons.Default.Straighten),
+    ToolItem("Currency Converter", "Live exchange rates, saved for offline use", "Converter", Icons.Default.AttachMoney),
+    ToolItem("Image Compressor", "Compress a photo offline", "Images", Icons.Default.Compress),
+    ToolItem("Image Resize", "Resize a photo offline", "Images", Icons.Default.PhotoSizeSelectLarge),
+    ToolItem("Manual Dress Editor", "Place and customize clothing overlays on a photo", "Images", Icons.Default.Checkroom),
+    ToolItem("ZIP Extractor", "Extract ZIP archives to app storage", "Files", Icons.Default.FolderZip),
+    ToolItem("Batch Rename", "Rename files in the app workspace", "Files", Icons.Default.DriveFileRenameOutline),
+    ToolItem("File Manager", "Browse files created by this app", "Files", Icons.Default.Folder),
+    ToolItem("Video Downloader", "Download direct video file links", "Online", Icons.Default.Download),
+    ToolItem("Download History", "View video files downloaded by this app", "Online", Icons.Default.History)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,12 +133,16 @@ private fun ToolkitApp() {
             topBar = {
                 TopAppBar(
                     title = {
-                        Column {
-                            Text("GETS MODES TOOLKIT", fontWeight = FontWeight.Bold)
-                            Text(
-                                if (selected == null) "Offline tools • Online downloader & rates" else selected!!.category,
-                                style = MaterialTheme.typography.labelSmall
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(painterResource(R.drawable.ic_logo), contentDescription = "GETS MODES logo", modifier = Modifier.size(34.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(selected?.title ?: "GETS MODES TOOLKIT", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    if (selected == null) "Your everyday toolkit" else selected!!.category,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
                         }
                     },
                     navigationIcon = {
@@ -155,16 +185,26 @@ private fun HomeScreen(
     items: List<ToolItem>,
     onSelect: (ToolItem) -> Unit
 ) {
+    val sections = items.groupBy { it.category }
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = PaleGreen)) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Your everyday toolkit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Green)
-                    Spacer(Modifier.height(6.dp))
-                    Text("Most tools work fully offline. Video downloads need an internet connection.")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = PaleGreen),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Image(painterResource(R.drawable.ic_logo), contentDescription = "GETS MODES logo", modifier = Modifier.size(64.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text("GETS MODES TOOLKIT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Green)
+                        Spacer(Modifier.height(2.dp))
+                        Text("${toolItems.size} tools • most work fully offline", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                    }
                 }
             }
         }
@@ -173,33 +213,72 @@ private fun HomeScreen(
                 value = search,
                 onValueChange = onSearch,
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 label = { Text("Search tools") },
                 singleLine = true
             )
         }
-        items(items) { item ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onSelect(item) },
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text(item.title, fontWeight = FontWeight.SemiBold)
-                        Surface(color = if (item.category == "Online") PaleGreen else Color(0xFFF0F3F0), shape = MaterialTheme.shapes.small) {
-                            Text(item.category, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = Green)
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(item.description, style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+        if (items.isEmpty()) {
+            item { Text("No tools match your search.", color = Color.Gray) }
+        }
+        sections.forEach { (category, list) ->
+            item(key = "header_$category") {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                    Box(Modifier.size(width = 5.dp, height = 18.dp).background(colorFor(category), RoundedCornerShape(3.dp)))
+                    Spacer(Modifier.width(8.dp))
+                    Text(category, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = colorFor(category))
+                    Spacer(Modifier.width(6.dp))
+                    Text("${list.size}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                }
+            }
+            items(list.chunked(2), key = { row -> "row_" + row.first().title }) { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    pair.forEach { tool -> ToolCard(tool, onSelect, Modifier.weight(1f)) }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
         item {
-            Column {
-                Text("Developed by Anas • Version 2.2.0", style = MaterialTheme.typography.labelMedium, color = Green)
+            Column(Modifier.padding(top = 8.dp)) {
+                Text("Developed by Anas • Version 2.3.0", style = MaterialTheme.typography.labelMedium, color = Green)
                 Text("Privacy: no analytics, accounts, ads or cloud storage.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
+        }
+    }
+}
+
+@Composable
+private fun ToolCard(tool: ToolItem, onSelect: (ToolItem) -> Unit, modifier: Modifier) {
+    val accent = colorFor(tool.category)
+    Card(
+        onClick = { onSelect(tool) },
+        modifier = modifier.height(150.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                Modifier.size(52.dp).background(accent.copy(alpha = 0.14f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(tool.icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                tool.title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, textAlign = TextAlign.Center,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                tool.description, fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -370,6 +449,7 @@ private fun regexTest(raw: String): String {
     return if (matches.isEmpty()) "No matches found." else matches.joinToString("\n")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VideoDownloaderScreen(modifier: Modifier) {
     val context = LocalContext.current

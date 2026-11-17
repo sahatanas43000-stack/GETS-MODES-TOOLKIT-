@@ -34,6 +34,10 @@ Android all-in-one toolkit built with Kotlin and Jetpack Compose.
 - Social source links (Facebook, Instagram, TikTok) open the original platform/browser; this project does not extract media from those pages.
 - Download history for files downloaded into this app's Movies folder
 
+## What's new in 2.3.0
+- New app logo and launcher icon.
+- Redesigned home screen: tools grouped by category, each with its own colored icon.
+
 ## What's new in 2.2.0
 - QR code generator and scanner (camera scan uses Google Play services; image scan is fully offline)
 - Image to PDF and PDF merge (share/save through the Android share sheet)
