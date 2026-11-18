@@ -312,4 +312,15 @@ class LogicTest {
         assertEquals(PHONK_RATE, mixed.sampleRate)
         assertEquals(PHONK_RATE * 3, mixed.samples.size)
     }
+
+    @Test
+    fun allVoiceEffectsProduceAudio() {
+        val wav = Wav(22050, ShortArray(8000) { ((it % 80) * 300 - 12000).toShort() })
+        for (fx in VoiceEffect.values()) {
+            val out = applyEffect(fx, wav)
+            assertEquals(fx.label, 22050, out.sampleRate)
+            assertTrue(fx.label, out.samples.isNotEmpty() && out.samples.any { it.toInt() != 0 })
+        }
+        assertTrue(applyEffect(VoiceEffect.CAVE, wav).samples.size > wav.samples.size)
+    }
 }

@@ -113,7 +113,7 @@ fun SettingsScreen(
         }
         if (cleared) Text(tr("Cleared.", "মুছে ফেলা হয়েছে।"), style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
-        Text("GETS MODES TOOLKIT • 2.6.0", style = MaterialTheme.typography.labelMedium)
+        Text("GETS MODES TOOLKIT • 2.6.1", style = MaterialTheme.typography.labelMedium)
         Text(
             tr("Developed by Anas. No analytics, accounts, ads or cloud storage.", "ডেভেলপার: Anas। কোনো অ্যানালিটিক্স, অ্যাকাউন্ট, বিজ্ঞাপন বা ক্লাউড স্টোরেজ নেই।"),
             style = MaterialTheme.typography.bodySmall

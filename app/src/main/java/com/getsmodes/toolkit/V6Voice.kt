@@ -88,8 +88,11 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
     val languages = remember(voices) { voices.map { langLabel(it.locale) }.distinct().sorted() }
     val forLanguage = remember(voices, language) { voices.filter { langLabel(it.locale) == language } }
     val filtered = remember(forLanguage, gender) {
-        if (gender == "Any") forLanguage else forLanguage.filter { genderOf(it) == gender }
+        (if (gender == "Any") forLanguage else forLanguage.filter { genderOf(it) == gender })
+            .sortedByDescending { it.quality }
     }
+    fun labelOf(v: Voice): String =
+        v.name + (if (v.quality >= Voice.QUALITY_HIGH) " · HQ" else "") + (if (v.isNetworkConnectionRequired) " · online" else "")
     val hasGenderInfo = forLanguage.any { genderOf(it) != "Unknown" }
 
     fun apply(e: TextToSpeech) {
@@ -178,8 +181,11 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
             Text("This language has no labelled male/female voice on your phone, so pitch was adjusted to sound " + gender.lowercase() + ".", style = MaterialTheme.typography.bodySmall)
         }
         if (filtered.isNotEmpty()) {
-            val names = filtered.map { it.name }
-            DropdownField("Voice", names, voiceName.ifEmpty { names.first() }, { voiceName = it })
+            val labels = filtered.map { labelOf(it) }
+            val current = filtered.firstOrNull { it.name == voiceName } ?: filtered.first()
+            DropdownField("Voice (best quality first)", labels, labelOf(current), { picked ->
+                voiceName = filtered.firstOrNull { labelOf(it) == picked }?.name ?: ""
+            })
         } else if (forLanguage.isNotEmpty()) {
             Text("No ${gender.lowercase()} voice found for $language; the default voice will be used.", style = MaterialTheme.typography.bodySmall)
         }
@@ -233,6 +239,9 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
         }, modifier = Modifier.fillMaxWidth()) { Text("Save as audio file (WAV)") }
         if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.bodySmall)
         saved?.let { f -> OutlinedButton(onClick = { shareFile(context, f, "audio/x-wav") }, modifier = Modifier.fillMaxWidth()) { Text("Share or save audio") } }
+        OutlinedButton(onClick = {
+            runCatching { context.startActivity(Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Get more languages and better voices") }
         Text(
             "Voices come from your phone's text-to-speech engine, so the available languages and male/female voices depend on what is installed. Add more in Settings > Text-to-speech output.",
             style = MaterialTheme.typography.bodySmall

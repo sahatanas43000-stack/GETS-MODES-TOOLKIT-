@@ -14,7 +14,13 @@ internal enum class VoiceEffect(val label: String, val pitch: Float, val rate: F
     BOY("Small boy", 1.5f, 1.05f),
     MOSQUITO("Mosquito", 1.9f, 1.25f),
     ROBOT("Robot", 0.7f, 0.95f),
-    MONSTER("Monster", 0.5f, 0.85f)
+    MONSTER("Monster", 0.5f, 0.85f),
+    OLD_MAN("Old man", 0.75f, 0.85f),
+    CARTOON("Cartoon", 1.8f, 1.1f),
+    DEMON("Demon", 0.4f, 0.8f),
+    ALIEN("Alien", 1.1f, 1f),
+    RADIO("Old radio", 1f, 1f),
+    CAVE("Cave echo", 0.9f, 0.9f)
 }
 
 private fun le16(b: ByteArray, p: Int): Int = (b[p].toInt() and 0xFF) or ((b[p + 1].toInt() and 0xFF) shl 8)
@@ -108,7 +114,40 @@ private fun brighten(s: ShortArray): ShortArray {
     return out
 }
 
+private fun echo(s: ShortArray, rate: Int, delayMs: Int, feedback: Float, tailMs: Int): ShortArray {
+    val d = rate * delayMs / 1000
+    val out = FloatArray(s.size + rate * tailMs / 1000)
+    for (i in s.indices) out[i] = s[i].toFloat()
+    for (i in d until out.size) out[i] += feedback * out[i - d]
+    return ShortArray(out.size) { clip(out[it]) }
+}
+
+private fun ringMod(s: ShortArray, rate: Int, hz: Double, mix: Float): ShortArray =
+    ShortArray(s.size) { i ->
+        val m = sin(2.0 * PI * hz * i / rate).toFloat()
+        clip(s[i] * (1f - mix) + s[i] * m * mix)
+    }
+
+private fun radio(s: ShortArray): ShortArray {
+    val out = ShortArray(s.size)
+    var low = 0f
+    var prev = 0f
+    for (i in s.indices) {
+        low += 0.35f * (s[i] - low)       // cut high frequencies
+        val high = low - prev * 0.9f       // cut low frequencies
+        prev = low
+        out[i] = clip(high * 2.2f)
+    }
+    return out
+}
+
 internal fun applyEffect(effect: VoiceEffect, w: Wav): Wav = when (effect) {
+    VoiceEffect.OLD_MAN -> Wav(w.sampleRate, tremolo(w.samples, w.sampleRate, 5f, 0.25f))
+    VoiceEffect.CARTOON -> Wav(w.sampleRate, resample(w.samples, 1.1f))
+    VoiceEffect.DEMON -> Wav(w.sampleRate, echo(ringMod(w.samples, w.sampleRate, 35.0, 0.45f), w.sampleRate, 140, 0.35f, 700))
+    VoiceEffect.ALIEN -> Wav(w.sampleRate, tremolo(ringMod(w.samples, w.sampleRate, 28.0, 0.6f), w.sampleRate, 7f, 0.3f))
+    VoiceEffect.RADIO -> Wav(w.sampleRate, radio(w.samples))
+    VoiceEffect.CAVE -> Wav(w.sampleRate, echo(w.samples, w.sampleRate, 320, 0.5f, 1500))
     VoiceEffect.ROBOT -> Wav(w.sampleRate, robotize(w.samples, w.sampleRate))
     VoiceEffect.MOSQUITO -> Wav(w.sampleRate, tremolo(brighten(resample(w.samples, 1.2f)), w.sampleRate, 38f, 0.6f))
     else -> w
