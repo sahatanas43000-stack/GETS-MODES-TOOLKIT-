@@ -1,5 +1,8 @@
 package com.getsmodes.toolkit
 
+import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
@@ -26,6 +29,19 @@ private fun genderOf(v: Voice): String {
     }
 }
 
+internal fun startPlayer(file: File, onEnd: () -> Unit): MediaPlayer? = try {
+    MediaPlayer().apply {
+        setDataSource(file.absolutePath)
+        setOnCompletionListener { onEnd() }
+        prepare()
+        start()
+    }
+} catch (e: Exception) {
+    null
+}
+
+private val PHONK_TRACK_SEEDS = longArrayOf(11, 23, 37, 41, 59, 73)
+
 private fun langLabel(l: Locale): String = l.getDisplayName(Locale.ENGLISH)
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -44,6 +60,11 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
     var pitch by remember { mutableFloatStateOf(1f) }
     var status by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf<File?>(null) }
+    var effect by remember { mutableStateOf(VoiceEffect.NORMAL) }
+    var beatStyle by remember { mutableStateOf<PhonkStyle?>(null) }
+    var beatTrack by remember { mutableIntStateOf(1) }
+    var beatVolume by remember { mutableFloatStateOf(0.45f) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
 
     DisposableEffect(Unit) {
         var engine: TextToSpeech? = null
@@ -61,7 +82,7 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
                 failed = true
             }
         }
-        onDispose { engine?.stop(); engine?.shutdown() }
+        onDispose { engine?.stop(); engine?.shutdown(); runCatching { player?.release() } }
     }
 
     val languages = remember(voices) { voices.map { langLabel(it.locale) }.distinct().sorted() }
@@ -72,10 +93,50 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
     val hasGenderInfo = forLanguage.any { genderOf(it) != "Unknown" }
 
     fun apply(e: TextToSpeech) {
-        e.setSpeechRate(speed)
-        e.setPitch(pitch)
+        e.setSpeechRate(speed * effect.rate)
+        e.setPitch(pitch * effect.pitch)
         val v = filtered.firstOrNull { it.name == voiceName } ?: filtered.firstOrNull() ?: forLanguage.firstOrNull()
         if (v != null) e.voice = v
+    }
+
+    fun playFile(f: File) {
+        Handler(Looper.getMainLooper()).post {
+            runCatching { player?.release() }
+            player = startPlayer(f) { }
+            if (player == null) status = "Could not play the audio."
+        }
+    }
+
+    fun render(e: TextToSpeech, target: File, done: (File) -> Unit) {
+        apply(e)
+        val fx = effect
+        val beat = beatStyle
+        val track = beatTrack
+        val volume = beatVolume
+        val raw = File(context.cacheDir, "tts_raw_${System.nanoTime()}.wav")
+        e.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) {
+                if (utteranceId != "render") return
+                try {
+                    var wav = applyEffect(fx, parseWav(raw.readBytes()))
+                    if (beat != null) {
+                        val loop = generatePhonk(beat, 8, PHONK_TRACK_SEEDS[(track - 1).coerceIn(0, PHONK_TRACK_SEEDS.lastIndex)])
+                        wav = mixWithBeat(wav, loop, volume)
+                    }
+                    target.writeBytes(writeWav(wav))
+                    raw.delete()
+                    done(target)
+                } catch (ex: Exception) {
+                    status = "Audio error: ${ex.message}"
+                }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { status = "Could not create audio." }
+        })
+        status = "Creating audio…"
+        val r = e.synthesizeToFile(text, Bundle(), raw, "render")
+        if (r != TextToSpeech.SUCCESS) status = "Could not create audio."
     }
 
     Column(
@@ -122,6 +183,28 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
         } else if (forLanguage.isNotEmpty()) {
             Text("No ${gender.lowercase()} voice found for $language; the default voice will be used.", style = MaterialTheme.typography.bodySmall)
         }
+        Text("Voice effect")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            VoiceEffect.values().forEach { fx ->
+                FilterChip(selected = effect == fx, onClick = { effect = fx; saved = null }, label = { Text(fx.label) })
+            }
+        }
+        Text("Background phonk")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = beatStyle == null, onClick = { beatStyle = null; saved = null }, label = { Text("None") })
+            PhonkStyle.values().forEach { st ->
+                FilterChip(selected = beatStyle == st, onClick = { beatStyle = st; saved = null }, label = { Text(st.label) })
+            }
+        }
+        if (beatStyle != null) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (1..PHONK_TRACK_SEEDS.size).forEach { n ->
+                    FilterChip(selected = beatTrack == n, onClick = { beatTrack = n; saved = null }, label = { Text("Track $n") })
+                }
+            }
+            Text("Beat volume: ${(beatVolume * 100).toInt()}%")
+            Slider(value = beatVolume, onValueChange = { beatVolume = it }, valueRange = 0.1f..1f)
+        }
         Text("Speed: ${"%.1f".format(speed)}x")
         Slider(value = speed, onValueChange = { speed = it }, valueRange = 0.5f..2f)
         Text("Pitch: ${"%.1f".format(pitch)}")
@@ -130,28 +213,22 @@ fun VoiceGeneratorScreen(modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(enabled = text.isNotBlank(), onClick = {
                 tts?.let { e ->
-                    apply(e)
-                    val r = e.speak(text, TextToSpeech.QUEUE_FLUSH, null, "speak")
-                    status = if (r == TextToSpeech.SUCCESS) "" else "Could not speak this text."
+                    runCatching { player?.release() }
+                    if (effect == VoiceEffect.NORMAL && beatStyle == null) {
+                        apply(e)
+                        val r = e.speak(text, TextToSpeech.QUEUE_FLUSH, null, "speak")
+                        status = if (r == TextToSpeech.SUCCESS) "" else "Could not speak this text."
+                    } else {
+                        render(e, File(context.cacheDir, "preview.wav")) { f -> status = ""; playFile(f) }
+                    }
                 }
             }, modifier = Modifier.weight(1f)) { Text("Speak") }
-            OutlinedButton(onClick = { tts?.stop() }, modifier = Modifier.weight(1f)) { Text("Stop") }
+            OutlinedButton(onClick = { tts?.stop(); runCatching { player?.release() }; player = null }, modifier = Modifier.weight(1f)) { Text("Stop") }
         }
         Button(enabled = text.isNotBlank(), onClick = {
             tts?.let { e ->
-                apply(e)
                 val file = File(appDir(context, "audio"), "voice_${timeStamp()}.wav")
-                e.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        if (utteranceId == "save") { saved = file; status = "Saved: ${file.absolutePath}" }
-                    }
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) { if (utteranceId == "save") status = "Could not save audio." }
-                })
-                status = "Creating audio…"
-                val r = e.synthesizeToFile(text, Bundle(), file, "save")
-                if (r != TextToSpeech.SUCCESS) status = "Could not save audio."
+                render(e, file) { f -> saved = f; status = "Saved: ${f.absolutePath}" }
             }
         }, modifier = Modifier.fillMaxWidth()) { Text("Save as audio file (WAV)") }
         if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.bodySmall)

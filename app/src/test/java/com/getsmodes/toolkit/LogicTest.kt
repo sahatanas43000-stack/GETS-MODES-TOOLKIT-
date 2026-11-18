@@ -1,5 +1,6 @@
 package com.getsmodes.toolkit
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -273,5 +274,42 @@ class LogicTest {
         assertEquals(true, sos.first().first)
         assertEquals(true, sos.last().first)
         assertEquals(9, sos.count { it.first })
+    }
+
+    @Test
+    fun wavRoundTripAndEffects() {
+        val samples = ShortArray(4000) { ((it % 100) * 200 - 10000).toShort() }
+        val wav = Wav(22050, samples)
+        val back = parseWav(writeWav(wav))
+        assertEquals(22050, back.sampleRate)
+        assertArrayEquals(samples, back.samples)
+        assertEquals(samples.size, applyEffect(VoiceEffect.ROBOT, wav).samples.size)
+        assertTrue(applyEffect(VoiceEffect.MOSQUITO, wav).samples.size < samples.size)
+        assertEquals(samples.size, applyEffect(VoiceEffect.NORMAL, wav).samples.size)
+        expectFailure { parseWav(ByteArray(10)) }
+    }
+
+    @Test
+    fun phonkPatternsAndGeneration() {
+        for (st in PhonkStyle.values()) {
+            for (p in listOf(st.kick, st.snare, st.hat, st.cowbell, st.bass)) assertEquals(st.label, 16, p.length)
+        }
+        val a = generatePhonk(PhonkStyle.DRIFT, 2, 5)
+        val b = generatePhonk(PhonkStyle.DRIFT, 2, 5)
+        val c = generatePhonk(PhonkStyle.MEMPHIS, 2, 5)
+        assertTrue(a.isNotEmpty())
+        assertArrayEquals(a, b)
+        assertFalse(a.contentEquals(c))
+        assertTrue(a.any { it.toInt() != 0 })
+        expectFailure { generatePhonk(PhonkStyle.DRIFT, 0, 1) }
+    }
+
+    @Test
+    fun mixWithBeatKeepsVoiceLength() {
+        val voice = Wav(PHONK_RATE, ShortArray(PHONK_RATE) { 1000 })
+        val beat = generatePhonk(PhonkStyle.TRAP, 1, 3)
+        val mixed = mixWithBeat(voice, beat, 0.5f)
+        assertEquals(PHONK_RATE, mixed.sampleRate)
+        assertEquals(PHONK_RATE * 3, mixed.samples.size)
     }
 }

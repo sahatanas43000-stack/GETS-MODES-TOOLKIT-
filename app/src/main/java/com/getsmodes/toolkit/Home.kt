@@ -45,13 +45,14 @@ internal val categoryColors = mapOf(
     "Images" to Color(0xFFD6447A),
     "Files" to Color(0xFF6B7A8A),
     "Online" to Color(0xFF16834A),
-    "Utility" to Color(0xFF00897B)
+    "Utility" to Color(0xFF00897B),
+    "Music" to Color(0xFFB71C1C)
 )
 
 private val categoryBn = mapOf(
     "Developer" to "ডেভেলপার", "Security" to "নিরাপত্তা", "Text" to "টেক্সট", "Telegram" to "টেলিগ্রাম",
     "Notes" to "নোটস", "QR" to "কিউআর", "PDF" to "পিডিএফ", "Converter" to "কনভার্টার",
-    "Calculator" to "ক্যালকুলেটর", "Images" to "ছবি", "Files" to "ফাইল", "Online" to "অনলাইন", "Utility" to "ইউটিলিটি"
+    "Calculator" to "ক্যালকুলেটর", "Images" to "ছবি", "Files" to "ফাইল", "Online" to "অনলাইন", "Utility" to "ইউটিলিটি", "Music" to "মিউজিক"
 )
 
 internal fun colorFor(category: String): Color = categoryColors[category] ?: AppGreen
@@ -108,6 +109,7 @@ internal val toolItems = listOf(
     ToolItem("Number Base Converter", "নাম্বার বেস কনভার্টার", "Decimal, binary, octal and hex", "দশমিক, বাইনারি, অক্টাল ও হেক্স", "Calculator", Icons.Default.Calculate),
     ToolItem("Stopwatch & Timer", "স্টপওয়াচ ও টাইমার", "Stopwatch with laps and a countdown timer", "ল্যাপসহ স্টপওয়াচ ও কাউন্টডাউন", "Utility", Icons.Default.Timer),
     ToolItem("Random Picker", "র‍্যান্ডম পিকার", "Dice, coin flip, random number or pick from a list", "ছক্কা, কয়েন, র‍্যান্ডম সংখ্যা বা তালিকা থেকে বাছাই", "Utility", Icons.Default.Casino),
+    ToolItem("Phonk Beat Maker", "ফঙ্ক বিট মেকার", "Many phonk beats: drift, memphis, funk, slowed", "অনেক ফঙ্ক বিট: ড্রিফট, মেমফিস, ফাঙ্ক, স্লোড", "Music", Icons.Default.LibraryMusic),
     ToolItem("Voice Generator", "ভয়েস জেনারেটর", "Text to speech in many languages, male or female voice", "টেক্সট থেকে কথা, অনেক ভাষা, পুরুষ বা নারী কণ্ঠ", "Utility", Icons.Default.RecordVoiceOver),
     ToolItem("Flashlight", "ফ্ল্যাশলাইট", "Torch with an SOS signal", "টর্চ ও SOS সংকেত", "Utility", Icons.Default.FlashlightOn),
     ToolItem("EMI Calculator", "ইএমআই ক্যালকুলেটর", "Monthly loan installment", "ঋণের মাসিক কিস্তি", "Calculator", Icons.Default.AccountBalance),
