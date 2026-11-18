@@ -25,7 +25,7 @@ class LogicTest {
 
     @Test
     fun formatJsonPrettyPrints() {
-        assertEquals("{\n  \"a\": 1\n}", formatJson("{\"a\":1}"))
+        assertEquals("{\n  \"a\": 1,\n  \"b\": 2\n}", formatJson("{\"a\":1,\"b\":2}"))
     }
 
     @Test
