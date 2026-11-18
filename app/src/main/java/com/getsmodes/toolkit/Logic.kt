@@ -535,7 +535,7 @@ internal fun fromRoman(raw: String): Int {
     var i = 0
     var total = 0
     for ((v, sym) in ROMAN) while (s.startsWith(sym, i)) { total += v; i += sym.length }
-    require(i == s.length) { "Not a valid Roman numeral." }
+    require(i == s.length && total in 1..3999 && toRoman(total) == s) { "Not a valid Roman numeral." }
     return total
 }
 
