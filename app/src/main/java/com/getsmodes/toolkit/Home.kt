@@ -44,13 +44,14 @@ internal val categoryColors = mapOf(
     "Calculator" to Color(0xFF8D6E63),
     "Images" to Color(0xFFD6447A),
     "Files" to Color(0xFF6B7A8A),
-    "Online" to Color(0xFF16834A)
+    "Online" to Color(0xFF16834A),
+    "Utility" to Color(0xFF00897B)
 )
 
 private val categoryBn = mapOf(
     "Developer" to "ডেভেলপার", "Security" to "নিরাপত্তা", "Text" to "টেক্সট", "Telegram" to "টেলিগ্রাম",
     "Notes" to "নোটস", "QR" to "কিউআর", "PDF" to "পিডিএফ", "Converter" to "কনভার্টার",
-    "Calculator" to "ক্যালকুলেটর", "Images" to "ছবি", "Files" to "ফাইল", "Online" to "অনলাইন"
+    "Calculator" to "ক্যালকুলেটর", "Images" to "ছবি", "Files" to "ফাইল", "Online" to "অনলাইন", "Utility" to "ইউটিলিটি"
 )
 
 internal fun colorFor(category: String): Color = categoryColors[category] ?: AppGreen
@@ -102,6 +103,12 @@ internal val toolItems = listOf(
     ToolItem("Age Calculator", "বয়স ক্যালকুলেটর", "Exact age and next birthday", "জন্মতারিখ থেকে বয়স", "Calculator", Icons.Default.Cake),
     ToolItem("Date Difference", "তারিখের ব্যবধান", "Days between two dates", "দুই তারিখের মধ্যে কত দিন", "Calculator", Icons.Default.DateRange),
     ToolItem("Tip & Percentage", "টিপ ও শতকরা হিসাব", "Tip, total and split a bill", "বিল ভাগ ও শতকরা", "Calculator", Icons.Default.Percent),
+    ToolItem("BMI Calculator", "বিএমআই ক্যালকুলেটর", "Body mass index from height and weight", "উচ্চতা ও ওজন থেকে বিএমআই", "Calculator", Icons.Default.MonitorWeight),
+    ToolItem("Roman Numerals", "রোমান সংখ্যা", "Numbers to Roman numerals and back", "সংখ্যা থেকে রোমান ও রোমান থেকে সংখ্যা", "Calculator", Icons.Default.Numbers),
+    ToolItem("Number Base Converter", "নাম্বার বেস কনভার্টার", "Decimal, binary, octal and hex", "দশমিক, বাইনারি, অক্টাল ও হেক্স", "Calculator", Icons.Default.Calculate),
+    ToolItem("Stopwatch & Timer", "স্টপওয়াচ ও টাইমার", "Stopwatch with laps and a countdown timer", "ল্যাপসহ স্টপওয়াচ ও কাউন্টডাউন", "Utility", Icons.Default.Timer),
+    ToolItem("Random Picker", "র‍্যান্ডম পিকার", "Dice, coin flip, random number or pick from a list", "ছক্কা, কয়েন, র‍্যান্ডম সংখ্যা বা তালিকা থেকে বাছাই", "Utility", Icons.Default.Casino),
+    ToolItem("Flashlight", "ফ্ল্যাশলাইট", "Torch with an SOS signal", "টর্চ ও SOS সংকেত", "Utility", Icons.Default.FlashlightOn),
     ToolItem("EMI Calculator", "ইএমআই ক্যালকুলেটর", "Monthly loan installment", "ঋণের মাসিক কিস্তি", "Calculator", Icons.Default.AccountBalance),
     // Images
     ToolItem("Image Compressor", "ছবি কমপ্রেসার", "Compress a photo offline", "ছবির সাইজ ছোট করুন", "Images", Icons.Default.Compress),

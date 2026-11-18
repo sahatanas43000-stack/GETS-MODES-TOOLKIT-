@@ -63,6 +63,8 @@ internal fun GenericToolScreen(item: ToolItem, modifier: Modifier) {
                         "Lorem Ipsum" -> loremIpsum(input)
                         "Morse Code" -> morse(input)
                         "Number to Words" -> numberToWords(input)
+                        "Roman Numerals" -> romanConvert(input)
+                        "Number Base Converter" -> baseConvert(input)
                         "Age Calculator" -> ageReport(input)
                         "Date Difference" -> dateDifference(input)
                         "Tip & Percentage" -> tipCalculator(input)
@@ -114,6 +116,8 @@ private fun toolHint(id: String): String = when (id) {
     "Lorem Ipsum" -> "Number of paragraphs, for example 3"
     "Morse Code" -> "Type text, or paste Morse (dots and dashes)"
     "Number to Words" -> "Example: 1250000"
+    "Roman Numerals" -> "A number (1-3999) like 1994, or a numeral like MCMXCIV"
+    "Number Base Converter" -> "Example: 255, 0xFF, 0b1010 or 0o17"
     "Age Calculator" -> "Birth date, for example 2000-05-17 or 17/05/2000"
     "Date Difference" -> "Two dates, one per line:\n2026-01-01\n2026-03-15"
     "Tip & Percentage" -> "bill  tip%  people   (example: 1200 10 3)"

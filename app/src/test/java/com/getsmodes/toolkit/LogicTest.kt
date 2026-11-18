@@ -237,4 +237,41 @@ class LogicTest {
             assertNotNull(units.first().first)
         }
     }
+
+    @Test
+    fun romanRoundTrip() {
+        assertEquals("MCMXCIV", toRoman(1994))
+        assertEquals(1994, fromRoman("mcmxciv"))
+        assertEquals("XLII", toRoman(42))
+        expectFailure { toRoman(0) }
+        expectFailure { fromRoman("IIII") }
+        expectFailure { fromRoman("ABC") }
+    }
+
+    @Test
+    fun baseConvertShowsAllBases() {
+        val r = baseConvert("0xFF")
+        assertTrue(r, r.contains("Decimal: 255") && r.contains("Binary: 11111111") && r.contains("Octal: 377"))
+        assertTrue(baseConvert("10").contains("Hex: A"))
+        expectFailure { baseConvert("zz") }
+    }
+
+    @Test
+    fun bmiMath() {
+        assertEquals(22.86, bmiValue(175.0, 70.0), 0.01)
+        assertEquals("Normal", bmiCategory(22.9))
+        assertEquals("Obese", bmiCategory(31.0))
+        expectFailure { bmiValue(10.0, 70.0) }
+    }
+
+    @Test
+    fun morseScheduleTiming() {
+        val s = morseSchedule(morseLetters("E T"), 100)
+        // E = dot, word gap, T = dash
+        assertEquals(listOf(true to 100, false to 700, true to 300), s)
+        val sos = morseSchedule(morseLetters("SOS"), 100)
+        assertEquals(true, sos.first().first)
+        assertEquals(true, sos.last().first)
+        assertEquals(9, sos.count { it.first })
+    }
 }

@@ -469,3 +469,113 @@ internal fun parsePageRange(spec: String, pageCount: Int): List<Int> {
     }
     return result
 }
+
+// ───────────────────────────── Morse visual / timing ─────────────────────────────
+
+/** Letters with their Morse codes for display; a (' ', "") entry marks a word break. Works for text and for Morse input. */
+internal fun morseLetters(input: String): List<Pair<Char, String>> {
+    val t = input.trim()
+    if (t.isEmpty()) return emptyList()
+    val out = ArrayList<Pair<Char, String>>()
+    val isMorse = t.all { it == '.' || it == '-' || it == '/' || it.isWhitespace() }
+    if (isMorse) {
+        t.split("/").forEachIndexed { wi, word ->
+            if (wi > 0) out += ' ' to ""
+            word.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.forEach { out += (MORSE_REVERSE[it] ?: '?') to it }
+        }
+    } else {
+        t.uppercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotEmpty() }.forEachIndexed { wi, word ->
+            if (wi > 0) out += ' ' to ""
+            word.forEach { c -> MORSE_TABLE[c]?.let { out += c to it } }
+        }
+    }
+    return out
+}
+
+/** Standard Morse timing: dot = 1 unit, dash = 3, gap inside a letter = 1, between letters = 3, between words = 7. */
+internal fun morseSchedule(letters: List<Pair<Char, String>>, unitMs: Int): List<Pair<Boolean, Int>> {
+    val out = ArrayList<Pair<Boolean, Int>>()
+    var needLetterGap = false
+    for ((ch, code) in letters) {
+        if (ch == ' ' && code.isEmpty()) {
+            if (out.isNotEmpty()) out[out.lastIndex] = false to unitMs * 7
+            needLetterGap = false
+            continue
+        }
+        if (needLetterGap && out.isNotEmpty()) out[out.lastIndex] = false to unitMs * 3
+        code.forEachIndexed { i, s ->
+            out += true to if (s == '.') unitMs else unitMs * 3
+            if (i < code.lastIndex) out += false to unitMs
+        }
+        out += false to unitMs * 3
+        needLetterGap = true
+    }
+    if (out.isNotEmpty() && !out.last().first) out.removeAt(out.lastIndex)
+    return out
+}
+
+// ───────────────────────────── Roman numerals, bases, BMI ─────────────────────────────
+
+private val ROMAN = listOf(
+    1000 to "M", 900 to "CM", 500 to "D", 400 to "CD", 100 to "C", 90 to "XC",
+    50 to "L", 40 to "XL", 10 to "X", 9 to "IX", 5 to "V", 4 to "IV", 1 to "I"
+)
+
+internal fun toRoman(n: Int): String {
+    require(n in 1..3999) { "Roman numerals cover 1 to 3999." }
+    var r = n
+    val sb = StringBuilder()
+    for ((v, s) in ROMAN) while (r >= v) { sb.append(s); r -= v }
+    return sb.toString()
+}
+
+internal fun fromRoman(raw: String): Int {
+    val s = raw.trim().uppercase(Locale.ROOT)
+    require(s.isNotEmpty() && s.all { it in "IVXLCDM" }) { "Not a valid Roman numeral." }
+    var i = 0
+    var total = 0
+    for ((v, sym) in ROMAN) while (s.startsWith(sym, i)) { total += v; i += sym.length }
+    require(i == s.length) { "Not a valid Roman numeral." }
+    return total
+}
+
+internal fun romanConvert(input: String): String {
+    val t = input.trim()
+    require(t.isNotEmpty()) { "Enter a number (1-3999) or a Roman numeral." }
+    return if (t.all { it.isDigit() }) {
+        val n = t.toIntOrNull() ?: throw IllegalArgumentException("Roman numerals cover 1 to 3999.")
+        "$n = ${toRoman(n)}"
+    } else {
+        "${t.uppercase(Locale.ROOT)} = ${fromRoman(t)}"
+    }
+}
+
+/** Accepts 255, 0xFF, 0b1010 or 0o17 and shows the value in decimal, binary, octal and hex. */
+internal fun baseConvert(input: String): String {
+    val t = input.trim().lowercase(Locale.ROOT).replace("_", "")
+    require(t.isNotEmpty()) { "Enter a number, for example 255, 0xFF or 0b1010." }
+    val neg = t.startsWith("-")
+    val body = t.removePrefix("-")
+    val v = when {
+        body.startsWith("0x") -> body.drop(2).toLongOrNull(16)
+        body.startsWith("0b") -> body.drop(2).toLongOrNull(2)
+        body.startsWith("0o") -> body.drop(2).toLongOrNull(8)
+        else -> body.toLongOrNull(10)
+    } ?: throw IllegalArgumentException("Could not read that number.")
+    val x = if (neg) -v else v
+    return "Decimal: $x\nBinary: ${java.lang.Long.toString(x, 2)}\nOctal: ${java.lang.Long.toString(x, 8)}\nHex: ${java.lang.Long.toString(x, 16).uppercase(Locale.ROOT)}"
+}
+
+internal fun bmiValue(heightCm: Double, weightKg: Double): Double {
+    require(heightCm in 50.0..260.0) { "Height should be between 50 and 260 cm." }
+    require(weightKg in 10.0..500.0) { "Weight should be between 10 and 500 kg." }
+    val m = heightCm / 100.0
+    return weightKg / (m * m)
+}
+
+internal fun bmiCategory(bmi: Double): String = when {
+    bmi < 18.5 -> "Underweight"
+    bmi < 25.0 -> "Normal"
+    bmi < 30.0 -> "Overweight"
+    else -> "Obese"
+}
