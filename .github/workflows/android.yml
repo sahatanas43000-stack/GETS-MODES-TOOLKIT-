@@ -13,6 +13,12 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Optional release-signing secrets. Without them a debug APK is built. See RELEASE_SIGNING.md.
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,23 +34,56 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug
+      - name: Run unit tests
+        run: gradle :app:testDebugUnitTest
 
-      - name: Upload APK
+      - name: Upload test report on failure
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: gets-modes-toolkit-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: test-report
+          path: app/build/reports/tests
 
-      - name: Publish APK to Releases (easy phone download)
+      - name: Prepare signing key (only if secrets exist)
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build APK (signed release if a key exists, otherwise debug)
+        run: |
+          if [ "$SIGNED" = "true" ]; then
+            gradle :app:assembleRelease :app:bundleRelease
+          else
+            gradle :app:assembleDebug
+          fi
+
+      - name: Collect build output
+        run: |
+          mkdir -p out
+          if [ "$SIGNED" = "true" ]; then
+            cp app/build/outputs/apk/release/app-release.apk out/GETS-MODES-TOOLKIT.apk
+            cp app/build/outputs/bundle/release/app-release.aab out/GETS-MODES-TOOLKIT.aab
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk out/GETS-MODES-TOOLKIT.apk
+          fi
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: gets-modes-toolkit-build
+          path: out/*
+
+      - name: Publish to Releases (easy phone download)
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk GETS-MODES-TOOLKIT.apk
+          if [ "$SIGNED" = "true" ]; then KIND="signed release"; else KIND="debug"; fi
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest GETS-MODES-TOOLKIT.apk \
+          gh release create latest out/* \
             --title "Latest build" \
-            --notes "Debug APK built from commit ${{ github.sha }}" \
+            --notes "Automatic $KIND build from commit ${{ github.sha }}" \
             --prerelease

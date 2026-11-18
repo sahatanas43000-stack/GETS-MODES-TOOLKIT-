@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="qr_scan"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_qr"
+        android:shortcutLongLabel="@string/shortcut_qr_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.getsmodes.toolkit.MainActivity"
+            android:targetPackage="com.getsmodes.toolkit">
+            <extra android:name="tool" android:value="QR Code Scanner" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="notes"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_notes"
+        android:shortcutLongLabel="@string/shortcut_notes_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.getsmodes.toolkit.MainActivity"
+            android:targetPackage="com.getsmodes.toolkit">
+            <extra android:name="tool" android:value="Offline Notes" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="image_pdf"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_pdf"
+        android:shortcutLongLabel="@string/shortcut_pdf_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.getsmodes.toolkit.MainActivity"
+            android:targetPackage="com.getsmodes.toolkit">
+            <extra android:name="tool" android:value="Image to PDF" />
+        </intent>
+    </shortcut>
+</shortcuts>

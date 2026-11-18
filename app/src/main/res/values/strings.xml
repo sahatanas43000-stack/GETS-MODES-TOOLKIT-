@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Quick shortcuts to GETS MODES TOOLKIT tools</string>
+    <string name="widget_qr">QR</string>
+    <string name="widget_notes">Notes</string>
+    <string name="widget_pdf">PDF</string>
+    <string name="widget_rates">Rates</string>
+    <string name="shortcut_qr">Scan QR</string>
+    <string name="shortcut_qr_long">Scan a QR code</string>
+    <string name="shortcut_notes">Notes</string>
+    <string name="shortcut_notes_long">Open offline notes</string>
+    <string name="shortcut_pdf">Image to PDF</string>
+    <string name="shortcut_pdf_long">Create a PDF from images</string>
+</resources>

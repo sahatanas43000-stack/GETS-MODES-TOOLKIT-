@@ -18,13 +18,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -47,6 +51,7 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeWriter
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -57,13 +62,6 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.min
 
-private val V3Green = Color(0xFF16834A)
-private val V3Pale = Color(0xFFEAF6EE)
-
-@Composable
-private fun V3Title(text: String) {
-    Text(text, fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V3Green)
-}
 
 /** Opens the Android share sheet for a file created by this app (lets the user save it to Downloads, Drive, WhatsApp, ...). */
 internal fun shareFile(context: Context, file: File, mime: String) {
@@ -82,7 +80,7 @@ internal fun shareFile(context: Context, file: File, mime: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DropdownField(
+internal fun DropdownField(
     label: String,
     options: List<String>,
     selected: String,
@@ -107,7 +105,7 @@ private fun DropdownField(
     }
 }
 
-private fun timeStamp(): String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+internal fun timeStamp(): String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
 
 // ───────────────────────────── QR code ─────────────────────────────
 
@@ -147,7 +145,6 @@ fun QrGeneratorScreen(modifier: Modifier = Modifier) {
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        V3Title("QR Code Generator")
         OutlinedTextField(
             text, { text = it },
             Modifier.fillMaxWidth().heightIn(min = 100.dp),
@@ -207,7 +204,6 @@ fun QrScannerScreen(modifier: Modifier = Modifier) {
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        V3Title("QR Code Scanner")
         Button(onClick = {
             try {
                 GmsBarcodeScanning.getClient(context).startScan()
@@ -226,9 +222,9 @@ fun QrScannerScreen(modifier: Modifier = Modifier) {
         OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text("Choose image") }
         Text(status, style = MaterialTheme.typography.bodySmall)
         if (result.isNotEmpty()) {
-            Card(colors = CardDefaults.cardColors(containerColor = V3Pale)) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Result", fontWeight = FontWeight.Bold, color = V3Green)
+                    Text("Result", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     SelectionContainer { Text(result) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { clipboard.setText(AnnotatedString(result)) }) { Text("Copy") }
@@ -255,7 +251,7 @@ fun QrScannerScreen(modifier: Modifier = Modifier) {
 private const val PDF_W = 595 // A4 at 72 dpi
 private const val PDF_H = 842
 
-private fun pdfOutputFile(context: Context, prefix: String): File {
+internal fun pdfOutputFile(context: Context, prefix: String): File {
     val dir = File(appDir(context, Environment.DIRECTORY_DOCUMENTS), "PDF").apply { mkdirs() }
     return File(dir, "${prefix}_${timeStamp()}.pdf")
 }
@@ -347,7 +343,6 @@ private fun PdfTool(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        V3Title(title)
         Button(onClick = onPick, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(pickLabel) }
         Text("${picked.size} $itemLabel selected (order = order you picked them)")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -406,7 +401,30 @@ fun MergePdfScreen(modifier: Modifier = Modifier) {
 
 // ───────────────────────────── Notes ─────────────────────────────
 
-private data class Note(val id: Long, val title: String, val body: String, val updated: Long)
+private data class Note(
+    val id: Long,
+    val title: String,
+    val body: String,
+    val updated: Long,
+    val pinned: Boolean = false,
+    val tags: String = ""
+) {
+    fun tagList(): List<String> = tags.split(",").map { it.trim().removePrefix("#") }.filter { it.isNotEmpty() }
+}
+
+private fun noteToJson(n: Note): JSONObject =
+    JSONObject().put("id", n.id).put("title", n.title).put("body", n.body).put("updated", n.updated)
+        .put("pinned", n.pinned).put("tags", n.tags)
+
+private fun noteFromJson(o: JSONObject): Note =
+    Note(
+        id = o.optLong("id", System.nanoTime()),
+        title = o.optString("title", "Untitled"),
+        body = o.optString("body", ""),
+        updated = o.optLong("updated", System.currentTimeMillis()),
+        pinned = o.optBoolean("pinned", false),
+        tags = o.optString("tags", "")
+    )
 
 private fun loadNotes(context: Context): List<Note> {
     val prefs = context.getSharedPreferences("offline_notes_v3", Context.MODE_PRIVATE)
@@ -421,10 +439,7 @@ private fun loadNotes(context: Context): List<Note> {
     }
     return try {
         val arr = JSONArray(raw)
-        (0 until arr.length()).map {
-            val o = arr.getJSONObject(it)
-            Note(o.getLong("id"), o.getString("title"), o.getString("body"), o.getLong("updated"))
-        }
+        (0 until arr.length()).map { noteFromJson(arr.getJSONObject(it)) }
     } catch (_: Exception) {
         emptyList()
     }
@@ -432,10 +447,41 @@ private fun loadNotes(context: Context): List<Note> {
 
 private fun saveNotes(context: Context, notes: List<Note>) {
     val arr = JSONArray()
-    notes.forEach {
-        arr.put(JSONObject().put("id", it.id).put("title", it.title).put("body", it.body).put("updated", it.updated))
-    }
+    notes.forEach { arr.put(noteToJson(it)) }
     context.getSharedPreferences("offline_notes_v3", Context.MODE_PRIVATE).edit().putString("list", arr.toString()).apply()
+}
+
+private fun exportNotes(context: Context, notes: List<Note>): File {
+    val arr = JSONArray()
+    notes.forEach { arr.put(noteToJson(it)) }
+    val root = JSONObject().put("app", "GETS MODES TOOLKIT").put("version", 1).put("notes", arr)
+    val dir = File(appDir(context, Environment.DIRECTORY_DOCUMENTS), "Notes").apply { mkdirs() }
+    val file = File(dir, "notes_backup_${timeStamp()}.json")
+    file.writeText(root.toString(2), Charsets.UTF_8)
+    return file
+}
+
+/** Returns the merged list and how many notes were added. Notes that already exist (same title and text) are skipped. */
+private fun mergeImportedNotes(existing: List<Note>, json: String): Pair<List<Note>, Int> {
+    val value = JSONTokener(json.trim()).nextValue()
+    val arr = when (value) {
+        is JSONArray -> value
+        is JSONObject -> value.optJSONArray("notes") ?: throw IllegalArgumentException("This file has no notes.")
+        else -> throw IllegalArgumentException("This is not a notes backup file.")
+    }
+    val result = existing.toMutableList()
+    val usedIds = existing.map { it.id }.toMutableSet()
+    var added = 0
+    for (i in 0 until arr.length()) {
+        val n = noteFromJson(arr.getJSONObject(i))
+        if (result.any { it.title == n.title && it.body == n.body }) continue
+        var id = n.id
+        while (id in usedIds) id++
+        usedIds += id
+        result += n.copy(id = id)
+        added++
+    }
+    return result to added
 }
 
 @Composable
@@ -443,8 +489,25 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var notes by remember { mutableStateOf(loadNotes(context)) }
     var query by remember { mutableStateOf("") }
+    var tagFilter by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<Note?>(null) }
     BackHandler(enabled = editing != null) { editing = null }
+
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            status = try {
+                val text = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader(Charsets.UTF_8).readText() }
+                    ?: error("Cannot open the file.")
+                val (merged, added) = mergeImportedNotes(notes, text)
+                notes = merged
+                saveNotes(context, merged)
+                "Imported $added new note(s)."
+            } catch (e: Exception) {
+                "Import failed: ${e.message}"
+            }
+        }
+    }
 
     val current = editing
     if (current != null) {
@@ -469,28 +532,69 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     }
 
     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
+    val allTags = notes.flatMap { it.tagList() }.distinctBy { it.lowercase(Locale.ROOT) }.sortedBy { it.lowercase(Locale.ROOT) }
     val shown = notes
-        .filter { query.isBlank() || it.title.contains(query, true) || it.body.contains(query, true) }
-        .sortedByDescending { it.updated }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        V3Title("Offline Notes")
-        Button(onClick = { editing = Note(System.currentTimeMillis(), "", "", System.currentTimeMillis()) }, modifier = Modifier.fillMaxWidth()) {
-            Text("New note")
+        .filter { n ->
+            (tagFilter == null || n.tagList().any { it.equals(tagFilter, true) }) &&
+                (query.isBlank() || n.title.contains(query, true) || n.body.contains(query, true) || n.tags.contains(query, true))
         }
-        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Search notes") }, singleLine = true)
+        .sortedWith(compareByDescending<Note> { it.pinned }.thenByDescending { it.updated })
+    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { editing = Note(System.currentTimeMillis(), "", "", System.currentTimeMillis()) }, modifier = Modifier.weight(1f)) {
+                Text("New note")
+            }
+            OutlinedButton(enabled = notes.isNotEmpty(), onClick = {
+                try {
+                    shareFile(context, exportNotes(context, notes), "application/json")
+                } catch (e: Exception) {
+                    status = "Export failed: ${e.message}"
+                }
+            }) { Text("Export") }
+            OutlinedButton(onClick = { importPicker.launch(arrayOf("application/json", "text/plain", "*/*")) }) { Text("Import") }
+        }
+        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Search notes and tags") }, singleLine = true)
+        if (allTags.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    FilterChip(selected = tagFilter == null, onClick = { tagFilter = null }, label = { Text("All") })
+                }
+                items(allTags) { tag ->
+                    FilterChip(
+                        selected = tagFilter.equals(tag, true),
+                        onClick = { tagFilter = if (tagFilter.equals(tag, true)) null else tag },
+                        label = { Text("#$tag") }
+                    )
+                }
+            }
+        }
+        if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.bodySmall)
         if (shown.isEmpty()) Text(if (notes.isEmpty()) "No notes yet. Tap \"New note\"." else "No notes match your search.")
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             items(shown, key = { it.id }) { note ->
-                Card(onClick = { editing = note }, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Card(
+                    onClick = { editing = note },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(note.title.ifBlank { "Untitled" }, fontWeight = FontWeight.SemiBold)
-                        Text(note.body.take(120), style = MaterialTheme.typography.bodySmall, maxLines = 2, color = Color.DarkGray)
-                        Text(dateFmt.format(Date(note.updated)), style = MaterialTheme.typography.labelSmall, color = V3Green)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (note.pinned) {
+                                Icon(Icons.Default.PushPin, contentDescription = "Pinned", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                            }
+                            Text(note.title.ifBlank { "Untitled" }, fontWeight = FontWeight.SemiBold)
+                        }
+                        Text(note.body.take(120), style = MaterialTheme.typography.bodySmall, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (note.tagList().isNotEmpty()) {
+                            Text(note.tagList().joinToString("  ") { "#$it" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text(dateFmt.format(Date(note.updated)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
-        Text("Notes stay in this app's private storage. No account or cloud sync.", style = MaterialTheme.typography.bodySmall)
+        Text("Notes stay in this app's private storage. Use Export to make a backup file.", style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -498,12 +602,15 @@ fun NotesScreen(modifier: Modifier = Modifier) {
 private fun NoteEditor(note: Note, modifier: Modifier, onSave: (Note) -> Unit, onDelete: () -> Unit, onBack: () -> Unit) {
     var title by remember(note.id) { mutableStateOf(note.title) }
     var body by remember(note.id) { mutableStateOf(note.body) }
+    var tags by remember(note.id) { mutableStateOf(note.tags) }
+    var pinned by remember(note.id) { mutableStateOf(note.pinned) }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        V3Title("Edit note")
         OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") }, singleLine = true)
+        OutlinedTextField(tags, { tags = it }, Modifier.fillMaxWidth(), label = { Text("Tags (comma separated)") }, singleLine = true)
         OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth().weight(1f), label = { Text("Write your note") })
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { onSave(note.copy(title = title.trim().ifBlank { "Untitled" }, body = body)) }) { Text("Save") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = { onSave(note.copy(title = title.trim().ifBlank { "Untitled" }, body = body, tags = tags.trim(), pinned = pinned)) }) { Text("Save") }
+            FilterChip(selected = pinned, onClick = { pinned = !pinned }, label = { Text(if (pinned) "Pinned" else "Pin") })
             OutlinedButton(onClick = onBack) { Text("Back") }
             OutlinedButton(onClick = onDelete) { Text("Delete") }
         }
@@ -511,60 +618,6 @@ private fun NoteEditor(note: Note, modifier: Modifier, onSave: (Note) -> Unit, o
 }
 
 // ───────────────────────────── Unit converter ─────────────────────────────
-
-private val unitCategories: Map<String, List<Pair<String, Double>>> = linkedMapOf(
-    "Length" to listOf(
-        "Meter" to 1.0, "Kilometer" to 1000.0, "Centimeter" to 0.01, "Millimeter" to 0.001,
-        "Mile" to 1609.344, "Yard" to 0.9144, "Foot" to 0.3048, "Inch" to 0.0254
-    ),
-    "Weight" to listOf(
-        "Kilogram" to 1.0, "Gram" to 0.001, "Milligram" to 0.000001, "Pound" to 0.45359237,
-        "Ounce" to 0.028349523125, "Tola" to 0.0116638038
-    ),
-    "Volume" to listOf(
-        "Liter" to 1.0, "Milliliter" to 0.001, "Gallon (US)" to 3.785411784,
-        "Cup (US)" to 0.2365882365, "Fluid ounce (US)" to 0.0295735295625
-    ),
-    "Area" to listOf(
-        "Square meter" to 1.0, "Square kilometer" to 1_000_000.0, "Hectare" to 10_000.0,
-        "Acre" to 4046.8564224, "Square foot" to 0.09290304, "Decimal (Shatak)" to 40.4685642
-    ),
-    "Speed" to listOf(
-        "Meter/second" to 1.0, "Kilometer/hour" to 0.2777777778, "Mile/hour" to 0.44704, "Knot" to 0.5144444444
-    ),
-    "Data" to listOf(
-        "Byte" to 1.0, "KB" to 1024.0, "MB" to 1_048_576.0, "GB" to 1_073_741_824.0, "TB" to 1_099_511_627_776.0
-    ),
-    "Temperature" to listOf("Celsius" to 1.0, "Fahrenheit" to 1.0, "Kelvin" to 1.0)
-)
-
-private fun convertUnit(category: String, from: String, to: String, value: Double): Double {
-    if (category == "Temperature") {
-        val celsius = when (from) {
-            "Celsius" -> value
-            "Fahrenheit" -> (value - 32.0) * 5.0 / 9.0
-            else -> value - 273.15
-        }
-        return when (to) {
-            "Celsius" -> celsius
-            "Fahrenheit" -> celsius * 9.0 / 5.0 + 32.0
-            else -> celsius + 273.15
-        }
-    }
-    val units = unitCategories.getValue(category).toMap()
-    return value * units.getValue(from) / units.getValue(to)
-}
-
-private fun formatNumber(v: Double): String {
-    if (v.isNaN() || v.isInfinite()) return "—"
-    if (v == 0.0) return "0"
-    val a = abs(v)
-    return if (a >= 1e-6 && a < 1e12) {
-        String.format(Locale.US, "%.6f", v).trimEnd('0').trimEnd('.')
-    } else {
-        String.format(Locale.US, "%.6e", v)
-    }
-}
 
 @Composable
 fun UnitConverterScreen(modifier: Modifier = Modifier) {
@@ -579,7 +632,6 @@ fun UnitConverterScreen(modifier: Modifier = Modifier) {
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        V3Title("Unit Converter")
         DropdownField("Category", categories, category, { category = it }, Modifier.fillMaxWidth())
         OutlinedTextField(
             input, { input = it }, Modifier.fillMaxWidth(), label = { Text("Value") }, singleLine = true,
@@ -587,9 +639,9 @@ fun UnitConverterScreen(modifier: Modifier = Modifier) {
         )
         DropdownField("From", names, from, { from = it }, Modifier.fillMaxWidth())
         DropdownField("To", names, to, { to = it }, Modifier.fillMaxWidth())
-        Card(colors = CardDefaults.cardColors(containerColor = V3Pale), modifier = Modifier.fillMaxWidth()) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
-                Text("Result", fontWeight = FontWeight.Bold, color = V3Green)
+                Text("Result", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 SelectionContainer {
                     Text(
                         if (value == null) "Enter a number" else "${formatNumber(value)} $from = ${formatNumber(convertUnit(category, from, to, value))} $to",
@@ -677,7 +729,6 @@ fun CurrencyConverterScreen(modifier: Modifier = Modifier) {
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        V3Title("Currency Converter")
         Text("Online feature • rates are saved for offline use", style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(
             amount, { amount = it }, Modifier.fillMaxWidth(), label = { Text("Amount") }, singleLine = true,
@@ -687,9 +738,9 @@ fun CurrencyConverterScreen(modifier: Modifier = Modifier) {
             DropdownField("From", codes, from, { from = it }, Modifier.fillMaxWidth())
             DropdownField("To", codes, to, { to = it }, Modifier.fillMaxWidth())
             OutlinedButton(onClick = { val t = from; from = to; to = t }) { Text("Swap") }
-            Card(colors = CardDefaults.cardColors(containerColor = V3Pale), modifier = Modifier.fillMaxWidth()) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("Result", fontWeight = FontWeight.Bold, color = V3Green)
+                    Text("Result", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     SelectionContainer {
                         Text(
                             if (value == null || rateFrom == null || rateTo == null) "Enter a number"

@@ -21,7 +21,9 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,8 +46,6 @@ import java.util.zip.ZipInputStream
 import java.util.Locale
 import kotlin.math.min
 
-private val V2Green = Color(0xFF16834A)
-private val V2Pale = Color(0xFFEAF6EE)
 
 @Composable
 fun ZipExtractorScreen(modifier: Modifier = Modifier) {
@@ -93,7 +93,6 @@ fun ZipExtractorScreen(modifier: Modifier = Modifier) {
         }
     }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("ZIP Extractor", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
         Button(onClick = { picker.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }) { Text("Select ZIP file") }
         Text(status)
         Text("Extraction is offline. Unsafe paths inside ZIP files are rejected.", style = MaterialTheme.typography.bodySmall)
@@ -112,8 +111,7 @@ fun ImageUtilityScreen(modifier: Modifier = Modifier, resize: Boolean) {
         bitmap = uri?.let { decodeBitmap(context, it) }
         status = if (bitmap == null) "Could not open image." else "Image loaded: ${bitmap!!.width} × ${bitmap!!.height}"
     }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(if (resize) "Image Resize" else "Image Compressor", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Button(onClick = { picker.launch("image/*") }) { Text("Choose Image") }
         bitmap?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxWidth().heightIn(max = 240.dp)) }
         if (resize) {
@@ -143,119 +141,6 @@ fun ImageUtilityScreen(modifier: Modifier = Modifier, resize: Boolean) {
 }
 
 @Composable
-fun ManualDressEditorScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    var photo by remember { mutableStateOf<Bitmap?>(null) }
-    var overlayColor by remember { mutableStateOf(Color(0xFF2878C8)) }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    var boxSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    var status by remember { mutableStateOf("Choose a photo, then place a simple clothing overlay.") }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        photo = uri?.let { decodeBitmap(context, it) }
-        offset = Offset.Zero
-        status = if (photo == null) "Could not open photo." else "Photo loaded. Adjust the overlay and save."
-    }
-    val colors = listOf(Color(0xFF2878C8), Color(0xFF202020), Color(0xFFB83232), Color(0xFF16834A), Color(0xFFE5C13D), Color.White)
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Text("Manual Dress Editor", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
-        Button(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text("Choose Your Photo") }
-        Box(Modifier.fillMaxWidth().weight(1f).onSizeChanged { boxSize = it }.background(Color(0xFFECECEC), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-            val img = photo
-            if (img != null) {
-                Image(img.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                Canvas(
-                    Modifier.fillMaxSize().pointerInput(scale) {
-                        detectDragGestures { change, drag ->
-                            change.consume()
-                            offset += drag
-                        }
-                    }
-                ) {
-                    val cx = size.width * 0.5f + offset.x
-                    val cy = size.height * 0.52f + offset.y
-                    val w = size.width * 0.34f * scale
-                    val h = size.height * 0.34f * scale
-                    // Simple editable shirt-shaped overlay; this is a manual sticker layer, not AI garment replacement.
-                    val shirt = androidx.compose.ui.graphics.Path().apply {
-                        moveTo(cx - w * .30f, cy - h * .48f)
-                        lineTo(cx - w * .82f, cy - h * .28f)
-                        lineTo(cx - w, cy + h * .05f)
-                        lineTo(cx - w * .72f, cy + h * .22f)
-                        lineTo(cx - w * .53f, cy + h * .05f)
-                        lineTo(cx - w * .48f, cy + h * .52f)
-                        lineTo(cx + w * .48f, cy + h * .52f)
-                        lineTo(cx + w * .53f, cy + h * .05f)
-                        lineTo(cx + w * .72f, cy + h * .22f)
-                        lineTo(cx + w, cy + h * .05f)
-                        lineTo(cx + w * .82f, cy - h * .28f)
-                        lineTo(cx + w * .30f, cy - h * .48f)
-                        quadraticTo(cx, cy - h * .15f, cx - w * .30f, cy - h * .48f)
-                        close()
-                    }
-                    drawPath(shirt, overlayColor.copy(alpha = .88f))
-                    drawLine(Color.White.copy(alpha = .85f), Offset(cx, cy - h * .38f), Offset(cx, cy + h * .48f), strokeWidth = 2.dp.toPx())
-                }
-            } else {
-                Text("Photo preview appears here", color = Color.DarkGray)
-            }
-        }
-        Text("Overlay size")
-        Slider(value = scale, onValueChange = { scale = it }, valueRange = .5f..1.8f)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Color:")
-            colors.forEach { c ->
-                Surface(
-                    modifier = Modifier.size(30.dp),
-                    shape = RoundedCornerShape(50),
-                    color = c,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
-                    onClick = { overlayColor = c }
-                ) {}
-            }
-        }
-        Button(enabled = photo != null, onClick = {
-            status = try {
-                val src = photo!!
-                val result = src.copy(Bitmap.Config.ARGB_8888, true)
-                val canvas = NativeCanvas(result)
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.argb((overlayColor.alpha * 225).toInt(), (overlayColor.red * 255).toInt(), (overlayColor.green * 255).toInt(), (overlayColor.blue * 255).toInt()) }
-                require(boxSize.width > 0 && boxSize.height > 0) { "Preview not ready yet." }
-                // The photo is shown with ContentScale.Fit, so map screen coordinates onto the displayed image rectangle.
-                val bw = boxSize.width.toFloat()
-                val bh = boxSize.height.toFloat()
-                val k = min(bw / result.width, bh / result.height)          // screen px per image px
-                val left = (bw - result.width * k) / 2f
-                val top = (bh - result.height * k) / 2f
-                val cx = ((bw * .5f + offset.x) - left) / k
-                val cy = ((bh * .52f + offset.y) - top) / k
-                val w = bw * .34f * scale / k
-                val h = bh * .34f * scale / k
-                val path = Path().apply {
-                    moveTo(cx - w*.30f, cy-h*.48f); lineTo(cx-w*.82f,cy-h*.28f); lineTo(cx-w,cy+h*.05f)
-                    lineTo(cx-w*.72f,cy+h*.22f); lineTo(cx-w*.53f,cy+h*.05f); lineTo(cx-w*.48f,cy+h*.52f)
-                    lineTo(cx+w*.48f,cy+h*.52f); lineTo(cx+w*.53f,cy+h*.05f); lineTo(cx+w*.72f,cy+h*.22f)
-                    lineTo(cx+w,cy+h*.05f); lineTo(cx+w*.82f,cy-h*.28f); lineTo(cx+w*.30f,cy-h*.48f)
-                    quadTo(cx,cy-h*.15f,cx-w*.30f,cy-h*.48f); close()
-                }
-                canvas.drawPath(path, paint)
-                val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = android.graphics.Color.argb(217, 255, 255, 255)
-                    strokeWidth = 2f * context.resources.displayMetrics.density / k
-                }
-                canvas.drawLine(cx, cy - h * .38f, cx, cy + h * .48f, line)
-                val dir = File(appDir(context, Environment.DIRECTORY_PICTURES), "DressEdits").apply { mkdirs() }
-                val file = File(dir, "dress_edit_${System.currentTimeMillis()}.png")
-                FileOutputStream(file).use { result.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                "Saved edited image: ${file.absolutePath}"
-            } catch (e: Exception) { "Save failed: ${e.message}" }
-        }, modifier = Modifier.fillMaxWidth()) { Text("Save Edited Photo") }
-        Text(status, style = MaterialTheme.typography.bodySmall)
-        Text("Manual overlay editor: the shirt sticker is placed over the photo. It does not automatically fit body contours or replace existing clothing.", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
 fun BatchRenameScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var prefix by remember { mutableStateOf("file") }
@@ -265,7 +150,6 @@ fun BatchRenameScreen(modifier: Modifier = Modifier) {
     fun refresh() { files.clear(); files.addAll(dir.listFiles()?.filter { it.isFile } ?: emptyList()) }
     LaunchedEffect(Unit) { refresh() }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Batch Rename", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
         OutlinedTextField(prefix, { prefix = it }, Modifier.fillMaxWidth(), label = { Text("New filename prefix") })
         Button(onClick = { refresh() }) { Text("Refresh Workspace") }
         Button(enabled = files.isNotEmpty(), onClick = {
@@ -301,7 +185,6 @@ fun LocalFileManagerScreen(modifier: Modifier = Modifier) {
     var refresh by remember { mutableIntStateOf(0) }
     val entries = remember(refresh) { base.walkTopDown().take(250).toList() }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("File Manager", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
         Text("App storage: ${base.absolutePath}", style = MaterialTheme.typography.bodySmall)
         OutlinedButton(onClick = { refresh++ }) { Text("Refresh") }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -319,7 +202,6 @@ fun DownloadHistoryScreen(modifier: Modifier = Modifier) {
     val dir = remember { appDir(context, Environment.DIRECTORY_MOVIES) }
     val downloaded = remember(refresh) { dir.listFiles()?.filter { it.isFile }?.sortedByDescending { it.lastModified() } ?: emptyList() }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Download History", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = V2Green)
         Text("Shows video files saved by this app.")
         OutlinedButton(onClick = { refresh++ }) { Text("Refresh History") }
         if (downloaded.isEmpty()) Text("No downloaded videos found yet.")

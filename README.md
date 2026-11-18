@@ -5,63 +5,31 @@ Android all-in-one toolkit built with Kotlin and Jetpack Compose.
 **Developer credit: Developed by Anas**
 
 ## Offline tools
-- JSON formatter (validates real JSON)
-- Base64 encode/decode
-- URL encode/decode
-- SHA-256 hash
-- Hash generator (MD5, SHA-1, SHA-256, SHA-512)
-- JWT decoder (header and payload only, signature is not verified)
-- Unix timestamp converter
+- JSON formatter (validates real JSON), Base64, URL encode/decode, SHA-256 and multi-hash generator, UUID, regex tester
+- JWT decoder (header and payload only, signature is not verified), Unix timestamp converter, color picker (HEX/RGB/HSL)
 - Secure password generator
-- Line sorter
-- UUID generator
-- Regex tester
-- Text counter and case converter
-- Duplicate line remover
-- Telegram post formatter
-- Offline notes (multiple notes, search)
+- Text counter, case converter, duplicate line remover, line sorter, word frequency, lorem ipsum, Morse code, number to words (English and Bangla)
+- Telegram post formatter (bold/italic/link buttons, preview, saved templates)
+- Offline notes (many notes, tags, pins, search, export and import)
 - QR code generator and scanner
-- Image to PDF and PDF merge
-- Unit converter
-- ZIP extractor
-- Image compressor and resize
-- Manual Dress Editor with a movable, resizable, recolorable shirt overlay
-- App-local file manager and batch rename
+- PDF tools: image to PDF, merge, split, rotate, PDF to images, add signature/stamp
+- Image tools: compressor, resize, crop and rotate, PNG/JPG/WebP convert, watermark, text from image (OCR, Latin text)
+- Unit converter, age calculator, date difference, tip and percentage, EMI calculator
+- Manual Dress Editor (drag, pinch-zoom and twist; shirt, T-shirt, dress or your own PNG)
+- ZIP extractor, app-local file manager and batch rename
 
 ## Online tools
 - Direct video URL download
-- Currency converter (live rates)
+- Currency converter (live rates, cached for offline use)
 - Social source links (Facebook, Instagram, TikTok) open the original platform/browser; this project does not extract media from those pages.
 - Download history for files downloaded into this app's Movies folder
 
-## What's new in 2.3.0
-- New app logo and launcher icon.
-- Redesigned home screen: tools grouped by category, each with its own colored icon.
-
-## What's new in 2.2.0
-- QR code generator and scanner (camera scan uses Google Play services; image scan is fully offline)
-- Image to PDF and PDF merge (share/save through the Android share sheet)
-- Offline Notes now supports many notes with search (old single note is migrated)
-- Unit converter (offline) and currency converter (live rates, cached for offline use)
-- Each push to `main` also publishes the APK under Releases > Latest build
-
-## Download the app
-1. Open the repository on GitHub, go to **Releases** and open **Latest build**.
-2. Tap `GETS-MODES-TOOLKIT.apk` to download it.
-3. Open the file on your phone. If Android asks, allow "Install unknown apps" for your browser.
-4. This is a debug build, so Play Protect may show a warning. Choose "Install anyway" only for your own build.
-
-Alternative: **Actions** > latest run > **Artifacts** > `gets-modes-toolkit-debug-apk` (a ZIP that contains the APK).
-
-## What's new in 2.1.0
-- Fixed a compile error on the home screen footer.
-- JSON formatter now uses a real parser instead of bracket counting.
-- Batch Rename can no longer overwrite files.
-- Dress Editor saves the overlay exactly where it was placed on screen.
-- Large photos are downsampled and EXIF rotation is respected (no more out-of-memory crashes or sideways photos).
-- ZIP extractor has file-count and size limits.
-- Download file names are sanitised and timestamped.
-- New tools: hash generator, JWT decoder, timestamp converter, password generator, line sorter.
+## App features
+- Dark mode (follows the phone, or choose Light/Dark)
+- English and Bangla interface (home screen and tool names; some tool internals are still English)
+- Favorites and recently used tools on the home screen
+- Each tool has its own icon and colored category
+- Home screen widget and long-press shortcuts (QR scan, Notes, Image to PDF, Currency)
 
 ## Requirements
 - Android 8.0 (API 26) or newer
@@ -72,10 +40,14 @@ Alternative: **Actions** > latest run > **Artifacts** > `gets-modes-toolkit-debu
 ## Build locally
 ```bash
 gradle :app:assembleDebug
+gradle :app:testDebugUnitTest   # run the unit tests
 ```
 
 APK output:
 `app/build/outputs/apk/debug/app-debug.apk`
+
+## Privacy
+See `PRIVACY.md`. Release signing and Google Play steps are in `RELEASE_SIGNING.md`.
 
 ## GitHub Actions
 Push to the `main` branch. GitHub Actions builds a debug APK. Download it from the workflow run's Artifacts.
