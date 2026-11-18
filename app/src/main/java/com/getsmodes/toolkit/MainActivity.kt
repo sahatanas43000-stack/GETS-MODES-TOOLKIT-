@@ -196,6 +196,7 @@ private fun ToolScreen(item: ToolItem, modifier: Modifier = Modifier) {
         "Random Picker" -> RandomScreen(modifier)
         "BMI Calculator" -> BmiScreen(modifier)
         "Flashlight" -> FlashlightScreen(modifier)
+        "Voice Generator" -> VoiceGeneratorScreen(modifier)
         "Color Picker" -> ColorPickerScreen(modifier)
         "Telegram Post Formatter" -> TelegramFormatterScreen(modifier)
         "ZIP Extractor" -> ZipExtractorScreen(modifier)
