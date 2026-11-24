@@ -188,10 +188,10 @@ internal fun HomeScreen(
 ) {
     val bn = LocalBn.current
     val searching = search.isNotBlank()
+    var category by rememberSaveable { mutableStateOf<String?>(null) }
     val byId = items.associateBy { it.id }
     val recentTools = if (searching || category != null) emptyList() else recents.mapNotNull { byId[it] }.take(4)
     val favoriteTools = if (searching || category != null) emptyList() else favorites.mapNotNull { byId[it] }
-    var category by rememberSaveable { mutableStateOf<String?>(null) }
     val allCategories = toolItems.map { it.category }.distinct()
     val shown = if (category == null) items else items.filter { it.category == category }
     val sections = shown.groupBy { it.category }
