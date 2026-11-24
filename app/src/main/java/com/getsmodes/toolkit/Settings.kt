@@ -1,6 +1,9 @@
 package com.getsmodes.toolkit
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -113,7 +116,18 @@ fun SettingsScreen(
         }
         if (cleared) Text(tr("Cleared.", "মুছে ফেলা হয়েছে।"), style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
-        Text("GETS MODES TOOLKIT • 2.6.1", style = MaterialTheme.typography.labelMedium)
+        Text(tr("About", "অ্যাপ সম্পর্কে"), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        val ctx = LocalContext.current
+        val releaseUrl = "https://github.com/sahatanas43000-stack/GETS-MODES-TOOLKIT-/releases/tag/latest"
+        OutlinedButton(onClick = {
+            runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }, modifier = Modifier.fillMaxWidth()) { Text(tr("Check for updates", "আপডেট আছে কিনা দেখুন")) }
+        OutlinedButton(onClick = {
+            val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                .putExtra(Intent.EXTRA_TEXT, "GETS MODES TOOLKIT: $releaseUrl")
+            runCatching { ctx.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }, modifier = Modifier.fillMaxWidth()) { Text(tr("Share this app", "অ্যাপ শেয়ার করুন")) }
+        Text("GETS MODES TOOLKIT • 2.7.0", style = MaterialTheme.typography.labelMedium)
         Text(
             tr("Developed by Anas. No analytics, accounts, ads or cloud storage.", "ডেভেলপার: Anas। কোনো অ্যানালিটিক্স, অ্যাকাউন্ট, বিজ্ঞাপন বা ক্লাউড স্টোরেজ নেই।"),
             style = MaterialTheme.typography.bodySmall

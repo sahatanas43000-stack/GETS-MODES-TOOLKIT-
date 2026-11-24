@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,8 +12,17 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -179,9 +189,12 @@ internal fun HomeScreen(
     val bn = LocalBn.current
     val searching = search.isNotBlank()
     val byId = items.associateBy { it.id }
-    val recentTools = if (searching) emptyList() else recents.mapNotNull { byId[it] }.take(4)
-    val favoriteTools = if (searching) emptyList() else favorites.mapNotNull { byId[it] }
-    val sections = items.groupBy { it.category }
+    val recentTools = if (searching || category != null) emptyList() else recents.mapNotNull { byId[it] }.take(4)
+    val favoriteTools = if (searching || category != null) emptyList() else favorites.mapNotNull { byId[it] }
+    var category by rememberSaveable { mutableStateOf<String?>(null) }
+    val allCategories = toolItems.map { it.category }.distinct()
+    val shown = if (category == null) items else items.filter { it.category == category }
+    val sections = shown.groupBy { it.category }
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -189,20 +202,19 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFF0B6E3C), Color(0xFF1E88E5))))
             ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Image(painterResource(R.drawable.ic_logo), contentDescription = "GETS MODES logo", modifier = Modifier.size(64.dp))
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("GETS MODES TOOLKIT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                        Text("GETS MODES TOOLKIT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            tr("${toolItems.size} tools • most work fully offline", "${toolItems.size}টি টুল • বেশিরভাগ অফলাইনে চলে"),
-                            style = MaterialTheme.typography.bodySmall
+                            tr("${toolItems.size} professional tools • ${allCategories.size} categories • works offline", "${toolItems.size}টি প্রফেশনাল টুল • ${allCategories.size}টি ক্যাটাগরি • অফলাইনে চলে"),
+                            style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -219,7 +231,19 @@ internal fun HomeScreen(
                 singleLine = true
             )
         }
-        if (items.isEmpty()) {
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { FilterChip(selected = category == null, onClick = { category = null }, label = { Text(tr("All", "সব")) }) }
+                items(allCategories, key = { it }) { c ->
+                    FilterChip(
+                        selected = category == c, onClick = { category = if (category == c) null else c },
+                        label = { Text(categoryLabel(c, bn)) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = colorFor(c).copy(alpha = 0.22f))
+                    )
+                }
+            }
+        }
+        if (shown.isEmpty()) {
             item { Text(tr("No tools match your search.", "কোনো টুল পাওয়া যায়নি।"), color = Color.Gray) }
         }
         if (recentTools.isNotEmpty()) {
@@ -283,14 +307,16 @@ private fun ToolRow(pair: List<ToolItem>, favorites: List<String>, onToggleFavor
 @Composable
 private fun ToolCard(tool: ToolItem, favorite: Boolean, onToggleFavorite: (ToolItem) -> Unit, onSelect: (ToolItem) -> Unit, modifier: Modifier) {
     val bn = LocalBn.current
+    val haptic = LocalHapticFeedback.current
     Card(
-        onClick = { onSelect(tool) },
+        onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSelect(tool) },
         modifier = modifier.height(152.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().height(4.dp).background(colorFor(tool.category)))
             Column(
                 Modifier.fillMaxSize().padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
