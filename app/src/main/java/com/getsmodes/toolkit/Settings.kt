@@ -127,7 +127,7 @@ fun SettingsScreen(
                 .putExtra(Intent.EXTRA_TEXT, "GETS MODES TOOLKIT: $releaseUrl")
             runCatching { ctx.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }, modifier = Modifier.fillMaxWidth()) { Text(tr("Share this app", "অ্যাপ শেয়ার করুন")) }
-        Text("GETS MODES TOOLKIT • 2.7.0", style = MaterialTheme.typography.labelMedium)
+        Text("GETS MODES TOOLKIT • 2.8.0", style = MaterialTheme.typography.labelMedium)
         Text(
             tr("Developed by Anas. No analytics, accounts, ads or cloud storage.", "ডেভেলপার: Anas। কোনো অ্যানালিটিক্স, অ্যাকাউন্ট, বিজ্ঞাপন বা ক্লাউড স্টোরেজ নেই।"),
             style = MaterialTheme.typography.bodySmall

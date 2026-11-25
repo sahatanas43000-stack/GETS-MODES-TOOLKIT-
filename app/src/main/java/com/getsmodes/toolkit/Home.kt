@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -151,26 +152,58 @@ internal fun ToolBadge(tool: ToolItem, size: Int, modifier: Modifier = Modifier)
     }
 }
 
-/** Logo header shown at the top of every tool screen. */
+/** Logo header shown at the top of every tool screen: coloured card with the tool's own logo. */
 @Composable
 internal fun ToolHeader(tool: ToolItem, favorite: Boolean, onToggleFavorite: () -> Unit) {
     val bn = LocalBn.current
-    Row(
-        Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    val accent = colorFor(tool.category)
+    Box(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.linearGradient(listOf(lerp(accent, Color.Black, 0.28f), accent)))
     ) {
-        ToolBadge(tool, 52)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(tool.title(bn), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = colorFor(tool.category), maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(tool.blurb(bn), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(68.dp).background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(tool.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(38.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(tool.title(bn), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Text(tool.blurb(bn), fontSize = 13.sp, color = Color.White.copy(alpha = 0.92f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    if (favorite) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = tr("Favorite", "প্রিয়"),
+                    tint = if (favorite) Color(0xFFFFD54F) else Color.White
+                )
+            }
         }
-        IconButton(onClick = onToggleFavorite) {
-            Icon(
-                if (favorite) Icons.Default.Star else Icons.Default.StarBorder,
-                contentDescription = tr("Favorite", "প্রিয়"),
-                tint = if (favorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    }
+}
+
+@Composable
+private fun BentoTile(
+    modifier: Modifier, title: String, subtitle: String?, icon: ImageVector,
+    bg: Color, fg: Color, iconTint: Color = fg, big: Boolean = false, onClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    Card(
+        onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() },
+        modifier = modifier,
+        shape = RoundedCornerShape(if (big) 26.dp else 22.dp),
+        colors = CardDefaults.cardColors(containerColor = bg, contentColor = fg)
+    ) {
+        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(if (big) 34.dp else 26.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = if (big) 18.sp else 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (subtitle != null) Text(subtitle, fontSize = 12.sp, color = fg.copy(alpha = 0.85f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
@@ -202,22 +235,24 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF0B6E3C), Color(0xFF1E88E5))))
-            ) {
-                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Image(painterResource(R.drawable.ic_logo), contentDescription = "GETS MODES logo", modifier = Modifier.size(64.dp))
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text("GETS MODES TOOLKIT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            tr("${toolItems.size} professional tools • ${allCategories.size} categories • works offline", "${toolItems.size}টি প্রফেশনাল টুল • ${allCategories.size}টি ক্যাটাগরি • অফলাইনে চলে"),
-                            style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f)
-                        )
-                    }
+            val hour = java.time.LocalTime.now().hour
+            val greeting = when {
+                hour < 5 -> tr("Good night", "শুভ রাত্রি")
+                hour < 12 -> tr("Good morning", "শুভ সকাল")
+                hour < 17 -> tr("Good afternoon", "শুভ দুপুর")
+                hour < 21 -> tr("Good evening", "শুভ সন্ধ্যা")
+                else -> tr("Good night", "শুভ রাত্রি")
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(greeting, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("Your toolkit", "আপনার টুলকিট"), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        tr("${toolItems.size} tools • ${allCategories.size} categories • works offline", "${toolItems.size}টি টুল • ${allCategories.size}টি ক্যাটাগরি • অফলাইনে চলে"),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+                Image(painterResource(R.drawable.ic_logo), contentDescription = "GETS MODES logo", modifier = Modifier.size(52.dp))
             }
         }
         item {
@@ -240,6 +275,41 @@ internal fun HomeScreen(
                         label = { Text(categoryLabel(c, bn)) },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = colorFor(c).copy(alpha = 0.22f))
                     )
+                }
+            }
+        }
+        if (!searching && category == null) {
+            item(key = "bento") {
+                val qr = byId["QR Code Scanner"]
+                val voice = byId["Voice Generator"]
+                val phonk = byId["Phonk Beat Maker"]
+                val surface = MaterialTheme.colorScheme.surface
+                val onSurface = MaterialTheme.colorScheme.onSurface
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth().height(176.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (qr != null) {
+                            BentoTile(Modifier.weight(1f).fillMaxHeight(), qr.title(bn), tr("Scan in one tap", "এক ট্যাপে স্ক্যান"), Icons.Default.QrCodeScanner, Color(0xFF2F5BFF), Color.White, big = true) { onSelect(qr) }
+                        }
+                        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (voice != null) BentoTile(Modifier.weight(1f).fillMaxWidth(), voice.title(bn), null, Icons.Default.RecordVoiceOver, Color(0xFFFF7A45), Color.White) { onSelect(voice) }
+                            if (phonk != null) BentoTile(Modifier.weight(1f).fillMaxWidth(), phonk.title(bn), null, Icons.Default.LibraryMusic, Color(0xFF141A26), Color.White, iconTint = Color(0xFFFF5C7A)) { onSelect(phonk) }
+                        }
+                    }
+                    val small = listOf(
+                        "PDF" to Icons.Default.PictureAsPdf, "Images" to Icons.Default.Image,
+                        "Notes" to Icons.Default.Description, "Calculator" to Icons.Default.Calculate
+                    )
+                    Row(Modifier.fillMaxWidth().height(88.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        small.forEach { (c, ic) ->
+                            BentoTile(Modifier.weight(1f).fillMaxHeight(), categoryLabel(c, bn), null, ic, surface, onSurface, iconTint = colorFor(c)) { category = c }
+                        }
+                    }
+                    val wide = listOf("Developer" to Icons.Default.Code, "Security" to Icons.Default.Lock)
+                    Row(Modifier.fillMaxWidth().height(76.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        wide.forEach { (c, ic) ->
+                            BentoTile(Modifier.weight(1f).fillMaxHeight(), categoryLabel(c, bn), null, ic, surface, onSurface, iconTint = colorFor(c)) { category = c }
+                        }
+                    }
                 }
             }
         }
